@@ -1,0 +1,227 @@
+[importlinter]
+root_packages =
+    apps
+    shipster
+
+[importlinter:contract:users-domain-no-shipster]
+name = Users domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.users.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:users-application-no-shipster]
+name = Users application does not depend on platform
+type = forbidden
+source_modules =
+    apps.users.application
+forbidden_modules =
+    shipster
+
+[importlinter:contract:users-infrastructure-no-shipster]
+name = Users infrastructure does not depend on platform
+type = forbidden
+source_modules =
+    apps.users.infrastructure
+forbidden_modules =
+    shipster
+
+[importlinter:contract:users-domain-isolation]
+name = Users domain is independent of outer layers
+type = forbidden
+source_modules =
+    apps.users.domain
+forbidden_modules =
+    apps.users.application
+    apps.users.infrastructure
+    apps.users.interfaces
+
+[importlinter:contract:users-application-no-infra]
+name = Users application does not depend on infrastructure or interfaces
+type = forbidden
+source_modules =
+    apps.users.application
+forbidden_modules =
+    apps.users.infrastructure
+    apps.users.interfaces
+
+[importlinter:contract:auth-domain-no-shipster]
+name = Auth domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.auth.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:auth-application-no-shipster]
+name = Auth application does not depend on platform
+type = forbidden
+source_modules =
+    apps.auth.application
+forbidden_modules =
+    shipster
+
+[importlinter:contract:auth-infrastructure-no-shipster]
+name = Auth infrastructure does not depend on platform
+type = forbidden
+source_modules =
+    apps.auth.infrastructure
+forbidden_modules =
+    shipster
+
+[importlinter:contract:auth-domain-isolation]
+name = Auth domain is independent of outer layers
+type = forbidden
+source_modules =
+    apps.auth.domain
+forbidden_modules =
+    apps.auth.application
+    apps.auth.infrastructure
+    apps.auth.interfaces
+
+[importlinter:contract:auth-application-no-infra]
+name = Auth application does not depend on infrastructure or interfaces
+type = forbidden
+source_modules =
+    apps.auth.application
+forbidden_modules =
+    apps.auth.infrastructure
+    apps.auth.interfaces
+
+[importlinter:contract:orders-domain-no-shipster]
+name = Orders domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.orders.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:orders-application-no-shipster]
+name = Orders application does not depend on platform
+type = forbidden
+source_modules =
+    apps.orders.application
+forbidden_modules =
+    shipster
+
+[importlinter:contract:orders-infrastructure-no-shipster]
+name = Orders infrastructure does not depend on platform
+type = forbidden
+source_modules =
+    apps.orders.infrastructure
+forbidden_modules =
+    shipster
+
+[importlinter:contract:orders-domain-isolation]
+name = Orders domain is independent of outer layers
+type = forbidden
+source_modules =
+    apps.orders.domain
+forbidden_modules =
+    apps.orders.application
+    apps.orders.infrastructure
+    apps.orders.interfaces
+
+[importlinter:contract:orders-application-no-infra]
+name = Orders application does not depend on infrastructure or interfaces
+type = forbidden
+source_modules =
+    apps.orders.application
+forbidden_modules =
+    apps.orders.infrastructure
+    apps.orders.interfaces
+
+[importlinter:contract:organizations-domain-no-shipster]
+name = Organizations domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.organizations.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:organizations-application-no-shipster]
+name = Organizations application does not depend on platform
+type = forbidden
+source_modules =
+    apps.organizations.application
+forbidden_modules =
+    shipster
+
+[importlinter:contract:organizations-infrastructure-no-shipster]
+name = Organizations infrastructure does not depend on platform
+type = forbidden
+source_modules =
+    apps.organizations.infrastructure
+forbidden_modules =
+    shipster
+
+[importlinter:contract:organizations-domain-isolation]
+name = Organizations domain is independent of outer layers
+type = forbidden
+source_modules =
+    apps.organizations.domain
+forbidden_modules =
+    apps.organizations.application
+    apps.organizations.infrastructure
+    apps.organizations.interfaces
+
+[importlinter:contract:organizations-application-no-infra]
+name = Organizations application does not depend on infrastructure or interfaces
+type = forbidden
+source_modules =
+    apps.organizations.application
+forbidden_modules =
+    apps.organizations.infrastructure
+    apps.organizations.interfaces
+
+[importlinter:contract:shared-domain-no-shipster]
+name = Shared domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.shared.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:notifications-domain-no-shipster]
+name = Notifications domain does not depend on platform
+type = forbidden
+source_modules =
+    apps.notifications.domain
+forbidden_modules =
+    shipster
+
+[importlinter:contract:notifications-application-no-shipster]
+name = Notifications application does not depend on platform
+type = forbidden
+source_modules =
+    apps.notifications.application
+forbidden_modules =
+    shipster
+
+[importlinter:contract:notifications-infrastructure-no-shipster]
+name = Notifications infrastructure does not depend on platform
+type = forbidden
+source_modules =
+    apps.notifications.infrastructure
+forbidden_modules =
+    shipster
+
+[importlinter:contract:notifications-domain-isolation]
+name = Notifications domain is independent of outer layers
+type = forbidden
+source_modules =
+    apps.notifications.domain
+forbidden_modules =
+    apps.notifications.application
+    apps.notifications.infrastructure
+    apps.notifications.interfaces
+
+[importlinter:contract:notifications-application-no-infra]
+name = Notifications application does not depend on infrastructure or interfaces
+type = forbidden
+source_modules =
+    apps.notifications.application
+forbidden_modules =
+    apps.notifications.infrastructure
+    apps.notifications.interfaces

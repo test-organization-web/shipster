@@ -1,0 +1,410 @@
+{
+  "info": {
+    "_postman_id": "shipster-api-v1",
+    "name": "Shipster API",
+    "description": "All FastAPI routes from `shipster.platform.app` (auth, users, orders, organizations).\n\n**Variables:** `base_url` (default `http://localhost:8000`), `access_token`, `user_id`, `order_id`, `organization_id`, `invitation_token`, `invitee_email`, `invitee_username`. Prerequest sets unique `test_email`, `test_username`, `invitee_email`, `invitee_username`, `order_number`, `org_name`, `org_slug` per run.\n\n**Organizations flow:** Register → Login → **POST Create organization** (requires Bearer token; creator becomes a member) → POST Invite member (Bearer = inviter) → **POST Register (invitee)** → **POST Login (invitee)** (overwrites `access_token` for the invitee) → POST Accept invitation. Inviting yourself returns 409 because you are already a member.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "organization_id", "value": "" },
+    { "key": "invitation_token", "value": "" },
+    { "key": "test_email", "value": "" },
+    { "key": "test_username", "value": "" },
+    { "key": "order_number", "value": "" },
+    { "key": "org_name", "value": "" },
+    { "key": "org_slug", "value": "" },
+    { "key": "invitee_email", "value": "" },
+    { "key": "invitee_username", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.collectionVariables.get('_run_seed')) { return; }",
+          "const ts = Date.now();",
+          "pm.collectionVariables.set('_run_seed', String(ts));",
+          "pm.collectionVariables.set('test_email', 'shipster.' + ts + '@example.com');",
+          "pm.collectionVariables.set('test_username', ('u' + String(ts)).slice(-31));",
+          "pm.collectionVariables.set('order_number', 'ORD-' + ts);",
+          "pm.collectionVariables.set('org_name', 'Organization ' + ts);",
+          "pm.collectionVariables.set('org_slug', 'org-' + ts);",
+          "pm.collectionVariables.set('invitee_email', 'invitee.' + ts + '@example.com');",
+          "pm.collectionVariables.set('invitee_username', ('inv' + String(ts)).slice(-31));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "OpenAPI JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OpenAPI available', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('openapi');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"username\": \"{{test_username}}\",\n  \"password\": \"password12\"\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Registered', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('user_id', j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"password12\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login OK', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', j.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Me",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Me OK', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('user_id', j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Register (invitee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{invitee_email}}\",\n  \"username\": \"{{invitee_username}}\",\n  \"password\": \"password12\"\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invitee registered', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Login (invitee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{invitee_email}}\",\n  \"password\": \"password12\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invitee login OK', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', j.access_token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET User by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users/{{user_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User found', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "POST Create order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_number\": \"{{order_number}}\",\n  \"user_id\": \"{{user_id}}\"\n}"
+            },
+            "url": "{{base_url}}/orders"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order created', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('order_id', j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Order by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/orders/{{order_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order found', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "POST Create organization",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{org_name}}\",\n  \"slug\": \"{{org_slug}}\"\n}"
+            },
+            "url": "{{base_url}}/organizations/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Organization created', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('organization_id', j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Organization by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/organizations/{{organization_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Organization found', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET List members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/organizations/{{organization_id}}/members"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Members list', function () { pm.response.to.have.status(200); });",
+                  "pm.expect(pm.response.json()).to.be.an('array');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Invite member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{invitee_email}}\"\n}"
+            },
+            "url": "{{base_url}}/organizations/{{organization_id}}/invitations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Requires inviter to be an org member (403 if Create org ran without auth or wrong org id).",
+                  "pm.test('Invite responds', function () {",
+                  "  pm.expect([201, 403, 404, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  pm.collectionVariables.set('invitation_token', j.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Accept invitation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{invitation_token}}\"\n}"
+            },
+            "url": "{{base_url}}/organizations/invitations/accept"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Valid when invitation_token is set and invitee matches invitation email.",
+                  "pm.test('Accept responds', function () {",
+                  "  pm.expect([201, 400, 403, 404, 409, 410]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

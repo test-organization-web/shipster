@@ -1,0 +1,36 @@
+# Virtual environments
+.venv
+venv
+.env
+.env.*
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.eggs
+dist
+build
+
+# Git / IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Cursor / tooling
+.cursor
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Docker (not needed inside image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Docs (optional; remove line if you ship README into the image)
+*.md

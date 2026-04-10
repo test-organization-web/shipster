@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shipster"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aio-pika>=9.6.2",
+    "aiosmtplib",
+    "aiosqlite>=0.20",
+    "apscheduler>=3.10,<4",
+    "email-validator>=2",
+    "fastapi>=0.115",
+    "httpx",
+    "PyJWT>=2.8",
+    "pydantic>=2",
+    "redis>=5",
+    "sqlalchemy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "deptry",
+    "import-linter>=2.0",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps*", "shipster*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.deptry]
+known_first_party = ["apps", "shipster"]
+optional_dependencies_dev_groups = ["dev"]

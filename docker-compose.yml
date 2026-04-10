@@ -1,0 +1,47 @@
+x-app-environment: &app-environment
+  REDIS_URL: redis://redis:6379/0
+  MESSAGING_BACKEND: rabbitmq
+  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+
+x-app-depends-on: &app-depends-on
+  redis:
+    condition: service_started
+  rabbitmq:
+    condition: service_healthy
+
+x-app-service: &app-service
+  build: .
+  depends_on: *app-depends-on
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    <<: *app-service
+    command: ["python", "main.py"]
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *app-environment
+      SHIPSTER_BACKGROUND_JOBS_ENABLED: "false"
+
+  worker:
+    <<: *app-service
+    command: ["python", "-m", "shipster.platform.worker"]
+    environment:
+      <<: *app-environment
+      SHIPSTER_BACKGROUND_JOBS_ENABLED: "true"
