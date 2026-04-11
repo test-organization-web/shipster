@@ -2,6 +2,10 @@ class UserNotFoundError(Exception):
     """Raised when a user cannot be loaded by identifier."""
 
 
+class InvalidCurrentPasswordError(Exception):
+    """Raised when the supplied current password does not match the stored hash."""
+
+
 class EmailAlreadyRegisteredError(Exception):
     """Raised when registration uses an email that already exists."""
 

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "shipster-api-v1",
     "name": "Shipster API",
-    "description": "All FastAPI routes from `shipster.platform.app` (auth, users, orders, organizations, privacy exports, privacy erasure).\n\n**Variables:** `base_url` (default `http://localhost:8000`), `access_token`, `user_id`, `order_id`, `organization_id`, `invitation_token`, `export_request_id`, `erasure_request_id`, `invitee_email`, `invitee_username`. Prerequest sets unique `test_email`, `test_username`, `invitee_email`, `invitee_username`, `order_number`, `org_name`, `org_slug` per run.\n\n**Organizations flow:** Register → Login → **POST Create organization** (requires Bearer token; creator becomes a member) → POST Invite member (Bearer = inviter) → **POST Register (invitee)** → **POST Login (invitee)** (overwrites `access_token` for the invitee) → POST Accept invitation. Inviting yourself returns 409 because you are already a member.\n\n**Privacy:** After login, **POST Create data export** or **POST Request erasure** may return `202` with a `request_id` stored in `export_request_id` / `erasure_request_id` for the follow-up GETs.",
+    "description": "All FastAPI routes from `shipster.platform.app` (auth, users, orders, organizations, privacy exports, privacy erasure).\n\n**Variables:** `base_url` (default `http://localhost:8000`), `access_token`, `user_id`, `order_id`, `organization_id`, `invitation_token`, `export_request_id`, `erasure_request_id`, `invitee_email`, `invitee_username`. Prerequest sets unique `test_email`, `test_username`, `invitee_email`, `invitee_username`, `order_number`, `org_name`, `org_slug` per run.\n\n**User profile:** `GET /auth/me` returns `id`, `email`, `username`, and `organizations` (array of `{ organization_id, organization_name }` for each membership). `POST /auth/register` and `GET /users/{user_id}` use the same `UserResponse` schema with `organizations` as `[]` (only `/me` loads org memberships).\n\n**Organizations flow:** Register → Login → **POST Create organization** (requires Bearer token; creator becomes a member) → POST Invite member (Bearer = inviter) → **POST Register (invitee)** → **POST Login (invitee)** (overwrites `access_token` for the invitee) → POST Accept invitation. Inviting yourself returns 409 because you are already a member.\n\n**Privacy:** After login, **POST Create data export** or **POST Request erasure** may return `202` with a `request_id` stored in `export_request_id` / `erasure_request_id` for the follow-up GETs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -92,6 +92,7 @@
                 "exec": [
                   "pm.test('Registered', function () { pm.response.to.have.status(201); });",
                   "const j = pm.response.json();",
+                  "pm.test('UserResponse.organizations is array', function () { pm.expect(j.organizations).to.be.an('array'); });",
                   "pm.collectionVariables.set('user_id', j.id);"
                 ]
               }
@@ -142,6 +143,7 @@
                 "exec": [
                   "pm.test('Me OK', function () { pm.response.to.have.status(200); });",
                   "const j = pm.response.json();",
+                  "pm.test('organizations is array', function () { pm.expect(j.organizations).to.be.an('array'); });",
                   "pm.collectionVariables.set('user_id', j.id);"
                 ]
               }
@@ -214,7 +216,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('User found', function () { pm.response.to.have.status(200); });"
+                  "pm.test('User found', function () { pm.response.to.have.status(200); });",
+                  "const u = pm.response.json();",
+                  "pm.test('UserResponse.organizations is array', function () { pm.expect(u.organizations).to.be.an('array'); });"
                 ]
               }
             }

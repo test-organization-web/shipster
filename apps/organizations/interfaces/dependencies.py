@@ -7,6 +7,7 @@ from apps.organizations.application.create_organization import CreateOrganizatio
 from apps.organizations.application.get_organization import GetOrganizationById
 from apps.organizations.application.invite_organization_member import InviteOrganizationMember
 from apps.organizations.application.list_organization_members import ListOrganizationMembers
+from apps.organizations.application.list_user_organizations import ListUserOrganizations
 from apps.organizations.domain.ports.organization_invitation_notifier import (
     OrganizationInvitationNotifier,
 )
@@ -34,6 +35,15 @@ async def get_list_organization_members(
     uow: ShipsterUnitOfWork = Depends(get_uow),
 ) -> ListOrganizationMembers:
     return ListOrganizationMembers(
+        organizations=uow.organizations,
+        members=uow.organization_members,
+    )
+
+
+async def get_list_user_organizations(
+    uow: ShipsterUnitOfWork = Depends(get_uow),
+) -> ListUserOrganizations:
+    return ListUserOrganizations(
         organizations=uow.organizations,
         members=uow.organization_members,
     )

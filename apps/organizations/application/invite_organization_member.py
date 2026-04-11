@@ -3,7 +3,6 @@ import logging
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from time import perf_counter
 from uuid import UUID, uuid4
 
 from apps.organizations.domain.entities import InvitationStatus, OrganizationInvitation

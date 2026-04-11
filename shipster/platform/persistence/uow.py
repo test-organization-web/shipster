@@ -20,7 +20,13 @@ from apps.organizations.infrastructure.persistence.repository.organization_invit
 from apps.organizations.infrastructure.persistence.repository.organization_member import (
     SqlAlchemyOrganizationMemberRepository,
 )
+from apps.users.domain.ports.password_reset_token_repository import (
+    PasswordResetTokenRepository,
+)
 from apps.users.domain.ports.user_repository import UserRepository
+from apps.users.infrastructure.persistence.repository.password_reset_token import (
+    SqlAlchemyPasswordResetTokenRepository,
+)
 from apps.users.infrastructure.persistence.repository.user import (
     SqlAlchemyUserRepository,
 )
@@ -38,11 +44,13 @@ class ShipsterUnitOfWork:
         "_organization_invitations",
         "_organization_members",
         "_organizations",
+        "_password_reset_tokens",
         "_users",
     )
 
     def __init__(self, session: AsyncSession) -> None:
         self._users = SqlAlchemyUserRepository(session)
+        self._password_reset_tokens = SqlAlchemyPasswordResetTokenRepository(session)
         self._orders = SqlAlchemyOrderRepository(session)
         self._organizations = SqlAlchemyOrganizationRepository(session)
         self._organization_members = SqlAlchemyOrganizationMemberRepository(session)
@@ -51,6 +59,10 @@ class ShipsterUnitOfWork:
     @property
     def users(self) -> UserRepository:
         return self._users
+
+    @property
+    def password_reset_tokens(self) -> PasswordResetTokenRepository:
+        return self._password_reset_tokens
 
     @property
     def orders(self) -> OrderRepository:

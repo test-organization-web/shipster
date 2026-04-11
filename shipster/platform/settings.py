@@ -24,6 +24,7 @@ _DEFAULT_TELEGRAM_BOT_TOKEN: str | None = None
 _DEFAULT_TELEGRAM_BASE_URL = "https://api.telegram.org"
 _DEFAULT_TELEGRAM_TIMEOUT_SECONDS = 10.0
 _DEFAULT_ORG_INVITATION_ACCEPT_URL_TEMPLATE: str | None = None
+_DEFAULT_PASSWORD_RESET_URL_TEMPLATE: str | None = None
 # HS256 needs a >=32-byte key (RFC 7518); old 29-char default triggered PyJWT warnings.
 _DEFAULT_JWT_SECRET = "dev-insecure-secret-change-me-32b"
 _DEFAULT_LOG_LEVEL = "INFO"
@@ -34,6 +35,8 @@ _DEFAULT_PRIVACY_EXPORT_EXPIRY_HOURS = 24
 _DEFAULT_PRIVACY_DIRECT_EXPORT_MAX_BYTES = 262_144
 _DEFAULT_PRIVACY_PENDING_EXPORT_POLL_SECONDS = 30.0
 _DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS = 30.0
+_DEFAULT_AUTH_PASSWORD_RESET_REQUESTED_POLL_SECONDS = 15.0
+_DEFAULT_CORS_ORIGINS: tuple[str, ...] = ()
 
 
 class GlobalSettings(BaseModel):
@@ -69,6 +72,10 @@ class GlobalSettings(BaseModel):
         default=_DEFAULT_ORG_INVITATION_ACCEPT_URL_TEMPLATE,
         description="Optional URL template using {token} and optionally {organization_id}.",
     )
+    password_reset_url_template: str | None = Field(
+        default=_DEFAULT_PASSWORD_RESET_URL_TEMPLATE,
+        description="Optional URL template for reset emails; use {token} for the raw reset token.",
+    )
     debug_request_timing: bool = Field(
         default=False,
         description="Enables DEBUG on shipster.debug.request_timing (latency split logs).",
@@ -96,6 +103,25 @@ class GlobalSettings(BaseModel):
     )
     privacy_pending_erasure_poll_seconds: float = Field(
         default=_DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS,
+    )
+    auth_password_reset_requested_poll_seconds: float = Field(
+        default=_DEFAULT_AUTH_PASSWORD_RESET_REQUESTED_POLL_SECONDS,
+        gt=0,
+        description=(
+            "Interval for polling pending password-reset rows and sending notification emails."
+        ),
+    )
+    cors_origins: tuple[str, ...] = Field(
+        default=_DEFAULT_CORS_ORIGINS,
+        description=(
+            "Allowed CORS origins (comma-separated in env). Empty disables CORSMiddleware."
+        ),
+    )
+    cors_allow_credentials: bool = Field(
+        default=False,
+        description=(
+            "Allow cookies on cross-origin requests when origins are explicit (not wildcard)."
+        ),
     )
 
     @field_validator("log_level", mode="before")
@@ -127,6 +153,12 @@ def _resolve_privacy_export_artifact_dir(path_value: str) -> str:
     if not path.is_absolute():
         path = _PROJECT_ROOT / path
     return str(path.resolve())
+
+
+def _parse_cors_origins(raw: str | None) -> tuple[str, ...]:
+    if raw is None or not str(raw).strip():
+        return _DEFAULT_CORS_ORIGINS
+    return tuple(part.strip() for part in str(raw).split(",") if part.strip())
 
 
 @lru_cache(maxsize=1)
@@ -176,6 +208,10 @@ def get_global_settings() -> GlobalSettings:
             "SHIPSTER_ORG_INVITATION_ACCEPT_URL_TEMPLATE",
             "ORG_INVITATION_ACCEPT_URL_TEMPLATE",
         ),
+        password_reset_url_template=_first_env(
+            "SHIPSTER_PASSWORD_RESET_URL_TEMPLATE",
+            "PASSWORD_RESET_URL_TEMPLATE",
+        ),
         debug_request_timing=_env_bool_default("SHIPSTER_DEBUG_REQUEST_TIMING", False),
         http_audit_enabled=_env_bool_default("SHIPSTER_HTTP_AUDIT", False),
         http_audit_log_bodies=_env_bool_default("SHIPSTER_HTTP_AUDIT_LOG_BODIES", False),
@@ -216,4 +252,13 @@ def get_global_settings() -> GlobalSettings:
             )
             or _DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS,
         ),
+        auth_password_reset_requested_poll_seconds=float(
+            _first_env(
+                "SHIPSTER_AUTH_PASSWORD_RESET_REQUESTED_POLL_SECONDS",
+                "AUTH_PASSWORD_RESET_REQUESTED_POLL_SECONDS",
+            )
+            or _DEFAULT_AUTH_PASSWORD_RESET_REQUESTED_POLL_SECONDS,
+        ),
+        cors_origins=_parse_cors_origins(_first_env("SHIPSTER_CORS_ORIGINS", "CORS_ORIGINS")),
+        cors_allow_credentials=_env_bool_default("SHIPSTER_CORS_ALLOW_CREDENTIALS", False),
     )

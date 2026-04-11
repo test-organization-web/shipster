@@ -98,6 +98,7 @@ def build_process_pending_erasure_requests(
         ),
         users_eraser=UserSubjectDataEraser(
             users=uow.users,
+            password_reset_tokens=uow.password_reset_tokens,
             password_hasher=_pbkdf2_password_hasher(),
         ),
         orders_eraser=OrderSubjectDataEraser(),

@@ -26,7 +26,10 @@ def _register_orm_metadata() -> None:
         PrivacyExportLifecycleEventORM,
         PrivacyExportRequestORM,
     )
-    from apps.users.infrastructure.persistence.schema import UserORM  # noqa: F401
+    from apps.users.infrastructure.persistence.schema import (  # noqa: F401
+        UserORM,
+        UserPasswordResetTokenORM,
+    )
 
 
 def _sqlite_connect_args(url: str) -> dict[str, bool]:

@@ -2,8 +2,8 @@
 
 import threading
 
-from apps.messaging.domain.ports.messaging import MessagePublisher, MessageReceiver
 from apps.messaging.domain.entities import MessagingBackendType
+from apps.messaging.domain.ports.messaging import MessagePublisher, MessageReceiver
 from apps.messaging.infrastructure.rabbitmq_messaging import RabbitMqMessaging
 from apps.messaging.infrastructure.redis_streams import RedisStreamMessaging
 from shipster.platform.redis_client import get_async_redis
@@ -30,7 +30,9 @@ def _get_rabbit_messaging() -> RabbitMqMessaging:
             if _rabbit_messaging is None:
                 url = get_global_settings().rabbitmq_url
                 if url is None or not str(url).strip():
-                    raise ValueError("MESSAGING_BACKEND=rabbitmq requires SHIPSTER_RABBITMQ_URL or RABBITMQ_URL")
+                    raise ValueError(
+                        "MESSAGING_BACKEND=rabbitmq requires SHIPSTER_RABBITMQ_URL or RABBITMQ_URL"
+                    )
                 _rabbit_messaging = RabbitMqMessaging(str(url).strip())
     return _rabbit_messaging
 

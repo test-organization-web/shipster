@@ -6,7 +6,7 @@ from apps.privacy.interfaces.dependencies import (
     build_process_pending_erasure_requests,
     build_process_pending_exports,
 )
-from apps.privacy.interfaces.privacy_interval_job_ids import PRIVACY_INTERVAL_JOB_IDS
+from apps.shared.domain.runtime_catalog import INTERVAL_JOB_IDS
 from shipster.platform.persistence import ShipsterUnitOfWork, get_async_session_factory
 from shipster.platform.scheduler.registry import ScheduleRegistry
 from shipster.platform.settings import get_global_settings
@@ -61,12 +61,12 @@ async def run_privacy_pending_erasure_poll() -> None:
 
 def register(registry: ScheduleRegistry) -> None:
     registry.add_interval_job(
-        PRIVACY_INTERVAL_JOB_IDS.process_pending_exports,
+        INTERVAL_JOB_IDS.privacy.process_pending_exports,
         seconds=get_global_settings().privacy_pending_export_poll_seconds,
         func=run_privacy_pending_export_poll,
     )
     registry.add_interval_job(
-        PRIVACY_INTERVAL_JOB_IDS.process_pending_erasure_requests,
+        INTERVAL_JOB_IDS.privacy.process_pending_erasure_requests,
         seconds=get_global_settings().privacy_pending_erasure_poll_seconds,
         func=run_privacy_pending_erasure_poll,
     )

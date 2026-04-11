@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from apps.auth.interfaces.api import auth_router
 from apps.orders.interfaces.api import order_router
@@ -45,6 +46,14 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Shipster", lifespan=_lifespan)
     if settings.http_audit_enabled:
         app.add_middleware(HttpAuditMiddleware)
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(settings.cors_origins),
+            allow_credentials=settings.cors_allow_credentials,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
     app.include_router(auth_router)
     app.include_router(user_router)
     app.include_router(order_router)
