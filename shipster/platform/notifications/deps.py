@@ -16,12 +16,19 @@ from apps.notifications.infrastructure.telegram_sender import (
     TelegramNotificationSettings,
     TelegramSenderHttpApi,
 )
+from apps.organizations.domain.ports.organization_invitation_notifier import (
+    OrganizationInvitationNotifier,
+)
+from apps.organizations.infrastructure.notifications import (
+    NotificationSenderOrganizationInvitationNotifier,
+)
 from shipster.platform.settings import get_global_settings
 
 _lock = threading.RLock()
 _email_sender: EmailSender | None = None
 _telegram_sender: TelegramSender | None = None
 _notification_sender: NotificationSender | None = None
+_organization_invitation_notifier: OrganizationInvitationNotifier | None = None
 
 
 def ensure_email_sender() -> EmailSender:
@@ -74,5 +81,24 @@ def ensure_notification_sender() -> NotificationSender:
     return _notification_sender
 
 
+def ensure_organization_invitation_notifier() -> OrganizationInvitationNotifier:
+    global _organization_invitation_notifier
+    if _organization_invitation_notifier is None:
+        with _lock:
+            if _organization_invitation_notifier is None:
+                settings = get_global_settings()
+                _organization_invitation_notifier = (
+                    NotificationSenderOrganizationInvitationNotifier(
+                        ensure_notification_sender(),
+                        accept_url_template=settings.organization_invitation_accept_url_template,
+                    )
+                )
+    return _organization_invitation_notifier
+
+
 async def get_notification_sender() -> NotificationSender:
     return ensure_notification_sender()
+
+
+async def get_organization_invitation_notifier() -> OrganizationInvitationNotifier:
+    return ensure_organization_invitation_notifier()

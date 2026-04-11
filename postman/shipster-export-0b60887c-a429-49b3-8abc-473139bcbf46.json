@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "subject_user_id": "0b60887c-a429-49b3-8abc-473139bcbf46",
+    "generated_at": "2026-04-10T19:47:47.359493+00:00",
+    "schema_version": 1
+  },
+  "users": {
+    "user": {
+      "id": "0b60887c-a429-49b3-8abc-473139bcbf46",
+      "email": "shipster.1775848489057@example.com",
+      "username": "u1775848489057"
+    }
+  },
+  "organizations": {
+    "memberships": [
+      {
+        "id": "da771003-c056-4c26-8baa-f343a4541dab",
+        "organization_id": "111bf6ff-aebb-4f0f-9d0a-93abb81aa2cf",
+        "user_id": "0b60887c-a429-49b3-8abc-473139bcbf46"
+      }
+    ],
+    "invitations": []
+  },
+  "orders": {
+    "orders": [
+      {
+        "id": "01c21a9b-391c-4207-89e3-1060b59a13e8",
+        "order_number": "ORD-1775848489057",
+        "user_id": "0b60887c-a429-49b3-8abc-473139bcbf46"
+      }
+    ]
+  }
+}

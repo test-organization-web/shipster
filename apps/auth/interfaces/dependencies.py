@@ -19,7 +19,6 @@ from shipster.platform.persistence import ShipsterUnitOfWork, get_uow
 from shipster.platform.settings import get_global_settings
 
 _http_bearer = HTTPBearer()
-_PERF_LOG = logging.getLogger(REQUEST_TIMING_LOGGER)
 
 
 def _jwt_secret() -> str:
@@ -64,7 +63,6 @@ async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(_http_bearer),
     verify: VerifyAccessToken = Depends(get_verify_access_token),
 ) -> UUID:
-    t0 = perf_counter()
     try:
         return await run_in_threadpool(verify.execute, credentials.credentials)
     except InvalidTokenError:
@@ -72,5 +70,3 @@ async def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         ) from None
-    finally:
-        _PERF_LOG.debug("access_token_verify_s=%.4f", perf_counter() - t0)

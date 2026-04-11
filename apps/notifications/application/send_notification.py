@@ -26,5 +26,4 @@ class SendNotification(NotificationSender):
             case NotificationChannel.TELEGRAM:
                 await self._telegram_sender.send(notification)
             case _:
-                msg = f"Unsupported notification channel: {notification.channel!r}"
-                raise ValueError(msg)
+                raise ValueError(f"Unsupported notification channel: {notification.channel!r}")

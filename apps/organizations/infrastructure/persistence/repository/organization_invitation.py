@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.organizations.domain.entities import InvitationStatus, OrganizationInvitation
@@ -29,6 +29,25 @@ class SqlAlchemyOrganizationInvitationRepository(OrganizationInvitationRepositor
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
         return None if row is None else organization_invitation_row_to_domain(row)
+
+    async def count_by_email(self, email: str) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(OrganizationInvitationORM)
+            .where(OrganizationInvitationORM.email == email)
+        )
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def list_by_email(self, email: str) -> list[OrganizationInvitation]:
+        stmt = (
+            select(OrganizationInvitationORM)
+            .where(OrganizationInvitationORM.email == email)
+            .order_by(OrganizationInvitationORM.id)
+        )
+        result = await self._session.execute(stmt)
+        rows = result.scalars().all()
+        return [organization_invitation_row_to_domain(row) for row in rows]
 
     async def find_pending_by_organization_and_email(
         self,
@@ -61,3 +80,9 @@ class SqlAlchemyOrganizationInvitationRepository(OrganizationInvitationRepositor
         existing.expires_at = invitation.expires_at
         existing.accepted_at = invitation.accepted_at
         existing.status = invitation.status.value
+
+    async def delete_all_for_email(self, email: str) -> int:
+        stmt = delete(OrganizationInvitationORM).where(OrganizationInvitationORM.email == email)
+        result = await self._session.execute(stmt)
+        await self._session.flush()
+        return int(result.rowcount or 0)

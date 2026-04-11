@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from apps.auth.interfaces.api import auth_router
 from apps.orders.interfaces.api import order_router
 from apps.organizations.interfaces.api import organization_router
+from apps.privacy.interfaces.api import privacy_erasure_router, privacy_router
 from apps.users.interfaces.api import user_router
 from shipster.platform.http_audit import HttpAuditMiddleware
 from shipster.platform.logging_bootstrap import (
@@ -48,4 +49,6 @@ def create_app() -> FastAPI:
     app.include_router(user_router)
     app.include_router(order_router)
     app.include_router(organization_router)
+    app.include_router(privacy_router)
+    app.include_router(privacy_erasure_router)
     return app

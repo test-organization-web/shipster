@@ -9,8 +9,7 @@ COPY pyproject.toml main.py ./
 COPY apps ./apps
 COPY shipster ./shipster
 
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir . "uvicorn[standard]"
+RUN pip install --no-cache-dir --no-build-isolation . "uvicorn[standard]"
 
 EXPOSE 8000
 

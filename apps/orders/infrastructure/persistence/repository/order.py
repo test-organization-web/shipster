@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.orders.domain.entities import Order
@@ -18,6 +18,17 @@ class SqlAlchemyOrderRepository(OrderRepository):
     async def get_by_id(self, order_id: UUID) -> Order | None:
         row = await self._session.get(OrderORM, order_id)
         return None if row is None else order_row_to_domain(row)
+
+    async def count_by_user_id(self, user_id: UUID) -> int:
+        stmt = select(func.count()).select_from(OrderORM).where(OrderORM.user_id == user_id)
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def list_by_user_id(self, user_id: UUID) -> list[Order]:
+        stmt = select(OrderORM).where(OrderORM.user_id == user_id).order_by(OrderORM.id)
+        result = await self._session.execute(stmt)
+        rows = result.scalars().all()
+        return [order_row_to_domain(row) for row in rows]
 
     async def get_by_order_number(self, order_number: str) -> Order | None:
         stmt = select(OrderORM).where(OrderORM.order_number == order_number).limit(1)

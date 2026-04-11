@@ -7,8 +7,10 @@ from apps.organizations.application.create_organization import CreateOrganizatio
 from apps.organizations.application.get_organization import GetOrganizationById
 from apps.organizations.application.invite_organization_member import InviteOrganizationMember
 from apps.organizations.application.list_organization_members import ListOrganizationMembers
-from apps.shared.domain.ports.public_events import PublicEventDispatcher
-from shipster.platform.messaging.deps import get_public_event_dispatcher
+from apps.organizations.domain.ports.organization_invitation_notifier import (
+    OrganizationInvitationNotifier,
+)
+from shipster.platform.notifications.deps import get_organization_invitation_notifier
 from shipster.platform.persistence import ShipsterUnitOfWork, get_uow
 
 
@@ -39,14 +41,14 @@ async def get_list_organization_members(
 
 async def get_invite_organization_member(
     uow: ShipsterUnitOfWork = Depends(get_uow),
-    public_events: PublicEventDispatcher = Depends(get_public_event_dispatcher),
+    notifier: OrganizationInvitationNotifier = Depends(get_organization_invitation_notifier),
 ) -> InviteOrganizationMember:
     return InviteOrganizationMember(
         organizations=uow.organizations,
         users=uow.users,
         members=uow.organization_members,
         invitations=uow.organization_invitations,
-        public_events=public_events,
+        notifier=notifier,
     )
 
 

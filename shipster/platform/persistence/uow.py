@@ -27,7 +27,11 @@ from apps.users.infrastructure.persistence.repository.user import (
 
 
 class ShipsterUnitOfWork:
-    """Request-scoped UoW; add aggregates here as new apps are wired in."""
+    """Request-scoped UoW; add aggregates here as new apps are wired in.
+
+    Data-export orchestration composes per-context exporters from these
+    repository accessors; the UoW does not store exporter instances.
+    """
 
     __slots__ = (
         "_orders",

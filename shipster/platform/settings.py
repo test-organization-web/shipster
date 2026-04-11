@@ -2,9 +2,11 @@
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
 
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 _DEFAULT_REDIS_URL = "redis://localhost:6379/0"
 _DEFAULT_MESSAGING_BACKEND = "redis"
@@ -24,12 +26,14 @@ _DEFAULT_TELEGRAM_TIMEOUT_SECONDS = 10.0
 _DEFAULT_ORG_INVITATION_ACCEPT_URL_TEMPLATE: str | None = None
 # HS256 needs a >=32-byte key (RFC 7518); old 29-char default triggered PyJWT warnings.
 _DEFAULT_JWT_SECRET = "dev-insecure-secret-change-me-32b"
-_DEFAULT_ORG_INVITATION_SUBSCRIPTION = "orgs-invitation-created"
-_DEFAULT_CONSUMER_ID = "shipster-primary"
-_DEFAULT_ORG_INVITATION_POLL_SECONDS = 5.0
 _DEFAULT_LOG_LEVEL = "INFO"
 _DEFAULT_JSON_LOGS = True
 _DEFAULT_ACCESS_LOG = True
+_DEFAULT_PRIVACY_EXPORT_ARTIFACT_DIR = str(_PROJECT_ROOT / ".shipster_privacy_exports")
+_DEFAULT_PRIVACY_EXPORT_EXPIRY_HOURS = 24
+_DEFAULT_PRIVACY_DIRECT_EXPORT_MAX_BYTES = 262_144
+_DEFAULT_PRIVACY_PENDING_EXPORT_POLL_SECONDS = 30.0
+_DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS = 30.0
 
 
 class GlobalSettings(BaseModel):
@@ -61,11 +65,6 @@ class GlobalSettings(BaseModel):
         default=True,
         description="Enable scheduler/background jobs in the current process.",
     )
-
-    org_invitation_subscription: str = Field(default=_DEFAULT_ORG_INVITATION_SUBSCRIPTION)
-    consumer_id: str = Field(default=_DEFAULT_CONSUMER_ID)
-    org_invitation_consumer_enabled: bool = Field(default=True)
-    org_invitation_poll_seconds: float = Field(default=_DEFAULT_ORG_INVITATION_POLL_SECONDS)
     organization_invitation_accept_url_template: str | None = Field(
         default=_DEFAULT_ORG_INVITATION_ACCEPT_URL_TEMPLATE,
         description="Optional URL template using {token} and optionally {organization_id}.",
@@ -87,17 +86,17 @@ class GlobalSettings(BaseModel):
             "If true, include redacted request/response body previews in shipster.audit.http logs."
         ),
     )
-
-    @field_validator("org_invitation_consumer_enabled", mode="before")
-    @classmethod
-    def _parse_org_invitation_consumer_enabled(cls, value: object) -> bool:
-        """Legacy: consumer runs only if env is ``1``, ``true``, or ``yes`` (case-insensitive)."""
-        if isinstance(value, bool):
-            return value
-        if value is None:
-            return True
-        normalized = str(value).lower().strip()
-        return normalized in ("1", "true", "yes")
+    privacy_export_artifact_dir: str = Field(default=_DEFAULT_PRIVACY_EXPORT_ARTIFACT_DIR)
+    privacy_export_expiry_hours: int = Field(default=_DEFAULT_PRIVACY_EXPORT_EXPIRY_HOURS)
+    privacy_direct_export_max_bytes: int = Field(
+        default=_DEFAULT_PRIVACY_DIRECT_EXPORT_MAX_BYTES,
+    )
+    privacy_pending_export_poll_seconds: float = Field(
+        default=_DEFAULT_PRIVACY_PENDING_EXPORT_POLL_SECONDS,
+    )
+    privacy_pending_erasure_poll_seconds: float = Field(
+        default=_DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS,
+    )
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -123,11 +122,16 @@ def _env_bool_default(name: str, default: bool) -> bool:
     return str(raw).lower().strip() in ("1", "true", "yes")
 
 
+def _resolve_privacy_export_artifact_dir(path_value: str) -> str:
+    path = Path(path_value).expanduser()
+    if not path.is_absolute():
+        path = _PROJECT_ROOT / path
+    return str(path.resolve())
+
+
 @lru_cache(maxsize=1)
 def get_global_settings() -> GlobalSettings:
     """Return cached settings (one instance per process)."""
-    raw_consumer_enabled = os.environ.get("SHIPSTER_ORG_INVITATION_CONSUMER_ENABLED")
-    poll_raw = os.environ.get("SHIPSTER_ORG_INVITATION_POLL_SECONDS")
     return GlobalSettings(
         database_url=_first_env("SHIPSTER_DATABASE_URL", "DATABASE_URL") or _DEFAULT_DATABASE_URL,
         redis_url=_first_env("REDIS_URL", "SHIPSTER_REDIS_URL") or _DEFAULT_REDIS_URL,
@@ -168,15 +172,6 @@ def get_global_settings() -> GlobalSettings:
         json_logs=_env_bool_default("SHIPSTER_JSON_LOGS", _DEFAULT_JSON_LOGS),
         access_log=_env_bool_default("SHIPSTER_ACCESS_LOG", _DEFAULT_ACCESS_LOG),
         background_jobs_enabled=_env_bool_default("SHIPSTER_BACKGROUND_JOBS_ENABLED", True),
-        org_invitation_subscription=os.environ.get("SHIPSTER_ORG_INVITATION_SUBSCRIPTION")
-        or _DEFAULT_ORG_INVITATION_SUBSCRIPTION,
-        consumer_id=os.environ.get("SHIPSTER_CONSUMER_ID") or _DEFAULT_CONSUMER_ID,
-        org_invitation_consumer_enabled=raw_consumer_enabled
-        if raw_consumer_enabled is not None
-        else True,
-        org_invitation_poll_seconds=(
-            float(poll_raw) if poll_raw not in (None, "") else _DEFAULT_ORG_INVITATION_POLL_SECONDS
-        ),
         organization_invitation_accept_url_template=_first_env(
             "SHIPSTER_ORG_INVITATION_ACCEPT_URL_TEMPLATE",
             "ORG_INVITATION_ACCEPT_URL_TEMPLATE",
@@ -184,4 +179,41 @@ def get_global_settings() -> GlobalSettings:
         debug_request_timing=_env_bool_default("SHIPSTER_DEBUG_REQUEST_TIMING", False),
         http_audit_enabled=_env_bool_default("SHIPSTER_HTTP_AUDIT", False),
         http_audit_log_bodies=_env_bool_default("SHIPSTER_HTTP_AUDIT_LOG_BODIES", False),
+        privacy_export_artifact_dir=(
+            _resolve_privacy_export_artifact_dir(
+                _first_env(
+                    "SHIPSTER_PRIVACY_EXPORT_ARTIFACT_DIR",
+                    "PRIVACY_EXPORT_ARTIFACT_DIR",
+                )
+                or _DEFAULT_PRIVACY_EXPORT_ARTIFACT_DIR,
+            )
+        ),
+        privacy_export_expiry_hours=int(
+            _first_env(
+                "SHIPSTER_PRIVACY_EXPORT_EXPIRY_HOURS",
+                "PRIVACY_EXPORT_EXPIRY_HOURS",
+            )
+            or _DEFAULT_PRIVACY_EXPORT_EXPIRY_HOURS,
+        ),
+        privacy_direct_export_max_bytes=int(
+            _first_env(
+                "SHIPSTER_PRIVACY_DIRECT_EXPORT_MAX_BYTES",
+                "PRIVACY_DIRECT_EXPORT_MAX_BYTES",
+            )
+            or _DEFAULT_PRIVACY_DIRECT_EXPORT_MAX_BYTES,
+        ),
+        privacy_pending_export_poll_seconds=float(
+            _first_env(
+                "SHIPSTER_PRIVACY_PENDING_EXPORT_POLL_SECONDS",
+                "PRIVACY_PENDING_EXPORT_POLL_SECONDS",
+            )
+            or _DEFAULT_PRIVACY_PENDING_EXPORT_POLL_SECONDS,
+        ),
+        privacy_pending_erasure_poll_seconds=float(
+            _first_env(
+                "SHIPSTER_PRIVACY_PENDING_ERASURE_POLL_SECONDS",
+                "PRIVACY_PENDING_ERASURE_POLL_SECONDS",
+            )
+            or _DEFAULT_PRIVACY_PENDING_ERASURE_POLL_SECONDS,
+        ),
     )

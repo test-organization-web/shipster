@@ -1,19 +1,41 @@
-x-app-environment: &app-environment
-  REDIS_URL: redis://redis:6379/0
-  MESSAGING_BACKEND: rabbitmq
-  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-
 x-app-depends-on: &app-depends-on
   redis:
     condition: service_started
   rabbitmq:
     condition: service_healthy
+  postgres:
+    condition: service_healthy
+
+x-app-build: &app-build
+  context: .
+  args:
+    HTTP_PROXY: ${HTTP_PROXY:-}
+    HTTPS_PROXY: ${HTTPS_PROXY:-}
+    NO_PROXY: ${NO_PROXY:-}
+    PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    PIP_EXTRA_INDEX_URL: ${PIP_EXTRA_INDEX_URL:-}
 
 x-app-service: &app-service
-  build: .
+  build: *app-build
   depends_on: *app-depends-on
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shipster
+      POSTGRES_PASSWORD: shipster
+      POSTGRES_DB: shipster
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shipster -d shipster"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     ports:
@@ -35,13 +57,14 @@ services:
     command: ["python", "main.py"]
     ports:
       - "8000:8000"
-    environment:
-      <<: *app-environment
-      SHIPSTER_BACKGROUND_JOBS_ENABLED: "false"
+    env_file:
+      - .env
 
   worker:
     <<: *app-service
     command: ["python", "-m", "shipster.platform.worker"]
-    environment:
-      <<: *app-environment
-      SHIPSTER_BACKGROUND_JOBS_ENABLED: "true"
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:

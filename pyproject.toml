@@ -15,6 +15,7 @@ dependencies = [
     "fastapi>=0.115",
     "httpx",
     "PyJWT>=2.8",
+    "psycopg[binary]>=3.2",
     "pydantic>=2",
     "redis>=5",
     "sqlalchemy>=2.0",

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "shipster-api-v1",
     "name": "Shipster API",
-    "description": "All FastAPI routes from `shipster.platform.app` (auth, users, orders, organizations).\n\n**Variables:** `base_url` (default `http://localhost:8000`), `access_token`, `user_id`, `order_id`, `organization_id`, `invitation_token`, `invitee_email`, `invitee_username`. Prerequest sets unique `test_email`, `test_username`, `invitee_email`, `invitee_username`, `order_number`, `org_name`, `org_slug` per run.\n\n**Organizations flow:** Register → Login → **POST Create organization** (requires Bearer token; creator becomes a member) → POST Invite member (Bearer = inviter) → **POST Register (invitee)** → **POST Login (invitee)** (overwrites `access_token` for the invitee) → POST Accept invitation. Inviting yourself returns 409 because you are already a member.",
+    "description": "All FastAPI routes from `shipster.platform.app` (auth, users, orders, organizations, privacy exports, privacy erasure).\n\n**Variables:** `base_url` (default `http://localhost:8000`), `access_token`, `user_id`, `order_id`, `organization_id`, `invitation_token`, `export_request_id`, `erasure_request_id`, `invitee_email`, `invitee_username`. Prerequest sets unique `test_email`, `test_username`, `invitee_email`, `invitee_username`, `order_number`, `org_name`, `org_slug` per run.\n\n**Organizations flow:** Register → Login → **POST Create organization** (requires Bearer token; creator becomes a member) → POST Invite member (Bearer = inviter) → **POST Register (invitee)** → **POST Login (invitee)** (overwrites `access_token` for the invitee) → POST Accept invitation. Inviting yourself returns 409 because you are already a member.\n\n**Privacy:** After login, **POST Create data export** or **POST Request erasure** may return `202` with a `request_id` stored in `export_request_id` / `erasure_request_id` for the follow-up GETs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,7 +18,9 @@
     { "key": "org_name", "value": "" },
     { "key": "org_slug", "value": "" },
     { "key": "invitee_email", "value": "" },
-    { "key": "invitee_username", "value": "" }
+    { "key": "invitee_username", "value": "" },
+    { "key": "export_request_id", "value": "" },
+    { "key": "erasure_request_id", "value": "" }
   ],
   "event": [
     {
@@ -401,6 +403,180 @@
                   "});"
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Privacy",
+      "item": [
+        {
+          "name": "Data export",
+          "item": [
+            {
+              "name": "POST Create data export",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "POST",
+                "header": [],
+                "url": "{{base_url}}/privacy/exports"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 200 = immediate file; 202 = async job with request_id in JSON.",
+                      "pm.test('Create export responds', function () {",
+                      "  pm.expect([200, 202]).to.include(pm.response.code);",
+                      "});",
+                      "if (pm.response.code === 202) {",
+                      "  const j = pm.response.json();",
+                      "  if (j.request_id) { pm.collectionVariables.set('export_request_id', j.request_id); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET Export status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{base_url}}/privacy/exports/{{export_request_id}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Export status responds', function () {",
+                      "  pm.expect([200, 404]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET Export lifecycle events",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{base_url}}/privacy/exports/{{export_request_id}}/events?limit=100&offset=0"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Export events responds', function () {",
+                      "  pm.expect([200, 404]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET Download export",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{base_url}}/privacy/exports/{{export_request_id}}/download"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Download responds', function () {",
+                      "  pm.expect([200, 404, 409, 410]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Erasure",
+          "item": [
+            {
+              "name": "POST Request erasure",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "POST",
+                "header": [],
+                "url": "{{base_url}}/privacy/erasure-requests"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Request erasure responds', function () {",
+                      "  pm.expect([202, 404, 409]).to.include(pm.response.code);",
+                      "});",
+                      "if (pm.response.code === 202) {",
+                      "  const j = pm.response.json();",
+                      "  if (j.request_id) { pm.collectionVariables.set('erasure_request_id', j.request_id); }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET Erasure status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": "{{base_url}}/privacy/erasure-requests/{{erasure_request_id}}"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Erasure status responds', function () {",
+                      "  pm.expect([200, 404]).to.include(pm.response.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.organizations.domain.entities import OrganizationMember
@@ -26,6 +26,25 @@ class SqlAlchemyOrganizationMemberRepository(OrganizationMemberRepository):
         stmt = (
             select(OrganizationMemberORM)
             .where(OrganizationMemberORM.organization_id == organization_id)
+            .order_by(OrganizationMemberORM.id)
+        )
+        result = await self._session.execute(stmt)
+        rows = result.scalars().all()
+        return [organization_member_row_to_domain(row) for row in rows]
+
+    async def count_by_user(self, user_id: UUID) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(OrganizationMemberORM)
+            .where(OrganizationMemberORM.user_id == user_id)
+        )
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def list_by_user(self, user_id: UUID) -> list[OrganizationMember]:
+        stmt = (
+            select(OrganizationMemberORM)
+            .where(OrganizationMemberORM.user_id == user_id)
             .order_by(OrganizationMemberORM.id)
         )
         result = await self._session.execute(stmt)
